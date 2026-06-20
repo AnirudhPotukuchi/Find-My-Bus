@@ -13,7 +13,7 @@ import {
   Gauge,
   Activity
 } from "lucide-react";
-import { ALL_ROUTES, ROUTES_BY_NUMBER, getDistanceKm, getInterpolatedPath, CBIT_COORDS } from "./routesData";
+import { ALL_ROUTES, ROUTES_BY_NUMBER, getDistanceKm, CBIT_COORDS } from "./routesData";
 import { syncService } from "./syncService";
 import BusMap from "./BusMap";
 import "./App.css";
@@ -38,12 +38,12 @@ export default function App() {
   // UI Dialog overlays
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [activeView, setActiveView] = useState("main"); // "main", "privacy", "terms"
 
   // Active user sharing state (if this tab is broadcasting)
   const [sharingState, setSharingState] = useState({
     isActive: false,
     busNumber: "",
-    isSimulating: false,
     speed: 0,
     heading: 0,
     distanceToCbit: 0,
@@ -133,7 +133,6 @@ export default function App() {
     setSharingState({
       isActive: false,
       busNumber: "",
-      isSimulating: false,
       speed: 0,
       heading: 0,
       distanceToCbit: 0,
@@ -147,10 +146,8 @@ export default function App() {
     } else {
       showNotification(`Live sharing stopped for Bus ${busNum}.`, "info");
     }
-  };
-
-  // Start Location Sharing (either simulation or real GPS)
-  const handleStartSharing = async (busNum, isSim) => {
+  }  // Start Location Sharing (real GPS)
+  const handleStartSharing = async (busNum) => {
     const route = ROUTES_BY_NUMBER[busNum];
     if (!route) return;
 
@@ -170,131 +167,62 @@ export default function App() {
     setIsShareModalOpen(false);
     showNotification(`Sharing live location for Bus ${busNum}...`, "success");
 
-    if (isSim) {
-      // SIMULATION MODE
-      const pathPoints = getInterpolatedPath(route.stops, 25);
-      let currentIndex = 0;
-
-      setSharingState({
-        isActive: true,
-        busNumber: busNum,
-        isSimulating: true,
-        speed: 45, // steady 45 km/h
-        heading: 0,
-        distanceToCbit: getDistanceKm(pathPoints[0].lat, pathPoints[0].lng, CBIT_COORDS.lat, CBIT_COORDS.lng),
-        accuracy: 5
-      });
-
-      // Post initial coordinate update
-      const initialCoords = {
-        latitude: pathPoints[0].lat,
-        longitude: pathPoints[0].lng,
-        speed: 12.5, // 45 km/h in m/s
-        heading: 90
-      };
-      await syncService.updateLocation(busNum, initialCoords, sessionToken);
-
-      // Start tick ticker
-      simulationIntervalRef.current = setInterval(async () => {
-        currentIndex++;
-        if (currentIndex >= pathPoints.length) {
-          // Reached destination
-          await triggerAutoTermination(busNum, "destination");
-          return;
-        }
-
-        const point = pathPoints[currentIndex];
-        const nextPoint = pathPoints[currentIndex + 1] || point;
-        
-        // Calculate compass heading angle between nodes
-        const dy = nextPoint.lat - point.lat;
-        const dx = nextPoint.lng - point.lng;
-        const headingAngle = Math.round((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360;
-
-        const dist = getDistanceKm(point.lat, point.lng, CBIT_COORDS.lat, CBIT_COORDS.lng);
-        const speedVar = 40 + Math.floor(Math.random() * 15); // fluctuate between 40-55 km/h
-
-        setSharingState(prev => ({
-          ...prev,
-          speed: speedVar,
-          heading: headingAngle,
-          distanceToCbit: dist
-        }));
-
-        const coords = {
-          latitude: point.lat,
-          longitude: point.lng,
-          speed: speedVar / 3.6, // convert back to m/s
-          heading: headingAngle
-        };
-
-        await syncService.updateLocation(busNum, coords, sessionToken);
-
-        // Distance guard check: if within 100 meters (0.1 km), terminate
-        if (dist <= 0.1) {
-          await triggerAutoTermination(busNum, "destination");
-        }
-      }, 1000);
-
-    } else {
-      // REAL GEOLOCATION MODE
-      if (!("geolocation" in navigator)) {
-        alert("Geolocation is not supported by your browser.");
-        return;
-      }
-
-      setSharingState({
-        isActive: true,
-        busNumber: busNum,
-        isSimulating: false,
-        speed: 0,
-        heading: 0,
-        distanceToCbit: Infinity,
-        accuracy: 0
-      });
-
-      const options = {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      };
-
-      const success = async (position) => {
-        const { latitude, longitude, speed, heading, accuracy } = position.coords;
-        const dist = getDistanceKm(latitude, longitude, CBIT_COORDS.lat, CBIT_COORDS.lng);
-        const kmhSpeed = speed ? Math.round(speed * 3.6) : 0;
-        const courseHeading = heading || 0;
-
-        setSharingState(prev => ({
-          ...prev,
-          speed: kmhSpeed,
-          heading: courseHeading,
-          distanceToCbit: dist,
-          accuracy: Math.round(accuracy)
-        }));
-
-        const coords = {
-          latitude,
-          longitude,
-          speed: speed || 0,
-          heading: courseHeading
-        };
-
-        await syncService.updateLocation(busNum, coords, sessionToken);
-
-        // Distance guard checks (terminate if inside 100m radius of CBIT)
-        if (dist <= 0.1) {
-          await triggerAutoTermination(busNum, "destination");
-        }
-      };
-
-      const error = (err) => {
-        console.error("GPS Watch Position Error:", err);
-        showNotification(`GPS Sensor Error: ${err.message}`, "error");
-      };
-
-      watchPositionIdRef.current = navigator.geolocation.watchPosition(success, error, options);
+    // REAL GEOLOCATION MODE
+    if (!("geolocation" in navigator)) {
+      alert("Geolocation is not supported by your browser.");
+      return;
     }
+
+    setSharingState({
+      isActive: true,
+      busNumber: busNum,
+      speed: 0,
+      heading: 0,
+      distanceToCbit: Infinity,
+      accuracy: 0
+    });
+
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    };
+
+    const success = async (position) => {
+      const { latitude, longitude, speed, heading, accuracy } = position.coords;
+      const dist = getDistanceKm(latitude, longitude, CBIT_COORDS.lat, CBIT_COORDS.lng);
+      const kmhSpeed = speed ? Math.round(speed * 3.6) : 0;
+      const courseHeading = heading || 0;
+
+      setSharingState(prev => ({
+        ...prev,
+        speed: kmhSpeed,
+        heading: courseHeading,
+        distanceToCbit: dist,
+        accuracy: Math.round(accuracy)
+      }));
+
+      const coords = {
+        latitude,
+        longitude,
+        speed: speed || 0,
+        heading: courseHeading
+      };
+
+      await syncService.updateLocation(busNum, coords, sessionToken);
+
+      // Distance guard checks (terminate if inside 100m radius of CBIT)
+      if (dist <= 0.1) {
+        await triggerAutoTermination(busNum, "destination");
+      }
+    };
+
+    const error = (err) => {
+      console.error("GPS Watch Position Error:", err);
+      showNotification(`GPS Sensor Error: ${err.message}`, "error");
+    };
+
+    watchPositionIdRef.current = navigator.geolocation.watchPosition(success, error, options);
   };
 
   const handleSearch = () => {
@@ -311,6 +239,7 @@ export default function App() {
   const handleBackToSearch = () => {
     setActiveSearchBus(null);
     setLiveBusCoordinates(null);
+    setActiveView("main");
   };
 
   // Generate lists of active buses from snapshot
@@ -371,7 +300,7 @@ export default function App() {
 
       {/* Floating Share Live Location sticky banner */}
       {sharingState.isActive && (
-        <div className="navbar broadcasting-banner" style={{ background: "rgba(239, 68, 68, 0.25)", borderColor: "var(--accent-red)", padding: "10px 32px" }}>
+        <div className="navbar broadcasting-banner">
           <div className="share-banner-details">
             <div className="red-dot-blinking"></div>
             <div>
@@ -388,8 +317,8 @@ export default function App() {
               <span className="text-muted block">CBIT DIST</span>
               <p className="text-gradient-cyan font-bold">{sharingState.distanceToCbit.toFixed(2)} km</p>
             </div>
-            <button className="btn-danger" style={{ padding: "8px 16px", borderRadius: "8px", fontSize: "0.85rem" }} onClick={() => triggerAutoTermination(sharingState.busNumber, "manual")}>
-              <Square size={14} /> Stop Sharing
+            <button className="btn-danger" onClick={() => triggerAutoTermination(sharingState.busNumber, "manual")}>
+              <Square size={14} /> <span className="btn-text">Stop Sharing</span>
             </button>
           </div>
         </div>
@@ -398,25 +327,136 @@ export default function App() {
       {/* Primary Navigation Bar */}
       <header className="navbar">
         <div className="nav-brand" onClick={handleBackToSearch}>
-          <div className="logo-radar">
-            <div className="logo-radar-ping"></div>
-            <Bus size={20} className="text-gradient-cyan" style={{ color: "var(--accent-cyan)" }} />
-          </div>
-          <div>
-            <h3 style={{ fontSize: "1.25rem", color: "white" }}>CBIT <span className="text-gradient-cyan">BusRadar</span></h3>
-            <span className="font-mono text-xs text-muted" style={{ letterSpacing: "0.08em" }}>TRANSIT CONTROL CENTER</span>
-          </div>
+          <h3 style={{ fontSize: "1.25rem", color: "white" }}>Find My Bus</h3>
         </div>
         
         <div className="nav-actions">
-          <button className="btn-primary" style={{ padding: "8px 16px", borderRadius: "10px", fontSize: "0.85rem" }} onClick={() => setIsShareModalOpen(true)}>
-            <Share2 size={16} /> Share Live Location
+          <button className="btn-primary" onClick={() => setIsShareModalOpen(true)}>
+            <Share2 size={16} /> <span className="btn-text">Share Live Location</span>
           </button>
         </div>
       </header>
 
       {/* Main Container */}
-      {!activeSearchBus ? (
+      {activeView === "privacy" ? (
+        <main className="legal-container glass-panel">
+          <div className="legal-header">
+            <h1 className="legal-title">Privacy Policy</h1>
+            <p className="legal-meta">Last Updated: June 2026</p>
+          </div>
+          
+          <div className="legal-alert">
+            <p>
+              IMPORTANT NOTICE: By accessing or using Find My Bus, you automatically accept and agree to be bound by this Privacy Policy. If you do not agree, please do not use the application.
+            </p>
+          </div>
+
+          <section className="legal-section">
+            <h3>1. Introduction</h3>
+            <p>
+              Find My Bus is a real-time student transport tracking utility. We are committed to transparency in how location data is handled, ensuring that student and driver privacy is protected.
+            </p>
+          </section>
+
+          <section className="legal-section">
+            <h3>2. Information We Collect</h3>
+            <p>
+              This application does not collect personal profiles, email addresses, or phone numbers. The only information processed is location telemetry data:
+            </p>
+            <ul>
+              <li><strong>GPS Coordinates:</strong> Temporary latitude and longitude streams are acquired solely when a student/driver actively initiates "Share Live Location" for a bus route.</li>
+              <li><strong>Device Telemetry:</strong> Ephemeral indicators like speed (km/h), course heading (degrees), and sensor accuracy (meters) are processed to show smooth animations on the transit dashboard.</li>
+            </ul>
+          </section>
+
+          <section className="legal-section">
+            <h3>3. Real-Time Synchronization</h3>
+            <p>
+              To ensure all students see active buses, live coordinates are broadcasted instantly:
+            </p>
+            <ul>
+              <li><strong>Cloud Sync:</strong> If configured, location streams are synced globally across user devices using a secure Firebase Realtime Database layer.</li>
+              <li><strong>Local Sandbox Sync:</strong> If Firebase is offline, local coordination is achieved locally across your browser tabs using BroadcastChannel streams.</li>
+            </ul>
+          </section>
+
+          <section className="legal-section">
+            <h3>4. Data Retention and Deletion</h3>
+            <p>
+              We do not persist historical trip tracking paths:
+            </p>
+            <ul>
+              <li><strong>Immediate Erasure:</strong> All coordinate telemetry fields are completely wiped and cleared from active database nodes immediately when sharing is manually stopped, or when the bus reaches CBIT (auto-termination at 100 meters).</li>
+              <li><strong>Sandbox Storage:</strong> Sandbox configurations are stored locally inside your browser's <code>localStorage</code> and can be cleared by deleting your browser cache.</li>
+            </ul>
+          </section>
+
+          <div className="legal-actions">
+            <button className="btn-primary" onClick={handleBackToSearch}>
+              Accept & Back to Dashboard
+            </button>
+          </div>
+        </main>
+      ) : activeView === "terms" ? (
+        <main className="legal-container glass-panel">
+          <div className="legal-header">
+            <h1 className="legal-title">Terms & Conditions</h1>
+            <p className="legal-meta">Last Updated: June 2026</p>
+          </div>
+          
+          <div className="legal-alert">
+            <p>
+              IMPORTANT NOTICE: By accessing or using Find My Bus, you automatically accept and agree to be bound by these Terms and Conditions. If you do not agree, please do not use the application.
+            </p>
+          </div>
+
+          <section className="legal-section">
+            <h3>1. Acceptable Use</h3>
+            <p>
+              This app is designed to help students track Chaitanya Bharathi Institute of Technology transit routes. You agree to use this platform in accordance with academic integrity guidelines:
+            </p>
+            <ul>
+              <li><strong>Accurate Sharing:</strong> You must only broadcast your GPS coordinates if you are physically present on the corresponding transit route.</li>
+              <li><strong>No Falsification:</strong> Falsifying location feeds, spoofing GPS coordinates, or using tools to simulate fake coordinates outside of the built-in Sandbox Simulation Mode is strictly prohibited.</li>
+            </ul>
+          </section>
+
+          <section className="legal-section">
+            <h3>2. Sharing Mechanism & Locks</h3>
+            <p>
+              To prevent duplicate coordinate streaming, the system employs exclusive route locks:
+            </p>
+            <ul>
+              <li><strong>Exclusive Access:</strong> Only one user session can lock and broadcast telemetry for a specific bus number at any given time.</li>
+              <li><strong>Lock Expiry:</strong> Abandoned locks automatically expire after 20 seconds of telemetry inactivity. You must not attempt to disrupt active lock ownership.</li>
+            </ul>
+          </section>
+
+          <section className="legal-section">
+            <h3>3. "As-Is" Service & Disclaimers</h3>
+            <p>
+              Find My Bus is offered as a student assistance utility. It is not an absolute official guarantee of bus arrivals:
+            </p>
+            <ul>
+              <li><strong>Coordinate Latency:</strong> Coordinates and estimated milestones are subject to network delay, mobile cellular coverage dropouts, and GPS hardware sensor variances.</li>
+              <li><strong>Academic Commutes:</strong> Always plan your campus commutes with a safe time buffer. Do not rely solely on this app for critical exams or scheduling.</li>
+            </ul>
+          </section>
+
+          <section className="legal-section">
+            <h3>4. Limitation of Liability</h3>
+            <p>
+              Under no circumstances shall the developers or CBIT Transport be held liable for any missed commutes, delayed routes, or coordination failures resulting from the use or reliance on this application.
+            </p>
+          </section>
+
+          <div className="legal-actions">
+            <button className="btn-primary" onClick={handleBackToSearch}>
+              Accept & Back to Dashboard
+            </button>
+          </div>
+        </main>
+      ) : !activeSearchBus ? (
         // LANDING STATE
         <main className="app-container">
           <div className="hero-section">
@@ -426,7 +466,7 @@ export default function App() {
             </p>
           </div>
 
-          <div className="search-grid">
+          <div className="search-center-container">
             {/* Bus Search Panel */}
             <section className="glass-panel glow-violet">
               <div className="card-title-container">
@@ -461,32 +501,6 @@ export default function App() {
               <button className="btn-primary w-full" onClick={handleSearch}>
                 <Search size={18} /> Locate Bus
               </button>
-            </section>
-
-            {/* Sandbox Status Panel */}
-            <section className="glass-panel">
-              <div className="card-title-container">
-                <Activity size={24} style={{ color: "var(--accent-cyan)" }} />
-                <h3>Sensor Feed Settings</h3>
-              </div>
-              <p className="text-muted text-sm mb-4">
-                This transit system uses a real-time sync layer. Review connection channels below.
-              </p>
-              
-              <div className="telemetry-grid" style={{ gridTemplateColumns: "1fr" }}>
-                <div className="telemetry-card">
-                  <span className="telemetry-label">DATABASE SYNC STATUS</span>
-                  <p className="telemetry-value" style={{ color: syncService.isUsingFirebase() ? "var(--accent-green)" : "var(--accent-cyan)" }}>
-                    {syncService.isUsingFirebase() ? "FIREBASE CLOUD DATABASE CONNECTED" : "SANDBOX MODE ACTIVE (MULTI-TAB LOCAL SYNC)"}
-                  </p>
-                  <p className="text-muted text-xs mt-4">
-                    {syncService.isUsingFirebase() 
-                      ? "The application is connected to your Firebase cloud database. Live locations will sync globally across devices."
-                      : "No Firebase configuration found. The dashboard is using internal broadcast channels to sync tracking coordinates across local browser windows in real-time."
-                    }
-                  </p>
-                </div>
-              </div>
             </section>
           </div>
 
@@ -532,7 +546,7 @@ export default function App() {
           {/* Left Panel: Route Milestones timeline & telemetry */}
           <section className="dashboard-sidebar">
             <div className="sidebar-header">
-              <button className="btn-secondary" style={{ padding: "8px 16px", fontSize: "0.85rem", marginBottom: "16px" }} onClick={handleBackToSearch}>
+              <button className="btn-secondary" style={{ marginBottom: "16px" }} onClick={handleBackToSearch}>
                 <ArrowLeft size={16} /> Back to Search
               </button>
               
@@ -542,7 +556,7 @@ export default function App() {
                   <h2 style={{ fontSize: "1.5rem", marginTop: "4px" }}>Route {activeSearchBus.number}: {activeSearchBus.name}</h2>
                 </div>
                 <div className={`status-indicator ${liveBusCoordinates ? "text-success" : "text-muted"}`} style={{ marginTop: "4px" }}>
-                  <div className={liveBusCoordinates ? "green-dot-blinking" : "status-dot bg-violet"} style={{ width: "8px", height: "8px" }}></div>
+                  <div className={liveBusCoordinates ? "green-dot-blinking" : "status-dot bg-violet"}></div>
                   {liveBusCoordinates ? "LIVE FEED" : "STANDBY"}
                 </div>
               </div>
@@ -651,20 +665,9 @@ export default function App() {
               </select>
             </div>
 
-            <div className="checkbox-toggle-container">
-              <label className="switch">
-                <input type="checkbox" checked={sharingState.isSimulating} onChange={(e) => setSharingState(prev => ({ ...prev, isSimulating: e.target.checked }))} />
-                <span className="slider"></span>
-              </label>
-              <div>
-                <p className="font-mono text-sm" style={{ fontWeight: 600 }}>Enable Route Simulation Mode</p>
-                <p className="text-muted text-xs">Simulates the route path automatically. Perfect for testing database syncing, timeline stops, and auto-termination.</p>
-              </div>
-            </div>
-
             <div className="flex-row-gap" style={{ marginTop: "24px" }}>
               <button className="btn-secondary" onClick={() => setIsShareModalOpen(false)}>Cancel</button>
-              <button className="btn-primary" disabled={!sharingState.busNumber} onClick={() => handleStartSharing(sharingState.busNumber, sharingState.isSimulating)}>
+              <button className="btn-primary" disabled={!sharingState.busNumber} onClick={() => handleStartSharing(sharingState.busNumber)}>
                 <Play size={16} /> Start Sharing
               </button>
             </div>
@@ -673,17 +676,49 @@ export default function App() {
       )}
 
       {/* Footer */}
-      <footer className="glass-panel" style={{ margin: "40px auto 24px", borderRadius: "12px", width: "calc(100% - 64px)", maxWidth: "1400px", padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
-        <p className="text-muted text-xs font-mono">
-          © {new Date().getFullYear()} All rights reserved by Raghavendra Anirudh
-        </p>
-        <div style={{ display: "flex", gap: "16px" }}>
-          <span className="font-mono text-xs text-muted" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <Activity size={12} className="text-success" /> LATENCY: ~40ms
-          </span>
-          <a href="https://github.com" target="_blank" rel="noreferrer" className="text-muted text-xs font-mono" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "4px" }}>
-            <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></svg> SOURCE CODE
-          </a>
+      <footer className="glass-panel footer-container">
+        <div className="footer-top-grid">
+          <div className="footer-tagline">
+            Experience seamless transit control.
+          </div>
+          <div className="footer-grid-column">
+            <span className="footer-grid-title">System</span>
+            <a onClick={handleBackToSearch} className="footer-grid-link">Transit Dashboard</a>
+            <a onClick={() => setIsShareModalOpen(true)} className="footer-grid-link">Share Location</a>
+            <a href="#mappls-map-container" className="footer-grid-link">Telemetry Feed</a>
+          </div>
+          <div className="footer-grid-column">
+            <span className="footer-grid-title">Resources</span>
+            <a href="/src/assets/Buses-for-Junior-Students-_CBIT-_Transport_08-07-2025-2025-26-1.png" target="_blank" rel="noreferrer" className="footer-grid-link">Junior Schedule</a>
+            <a href="/src/assets/Buses-for-Senior-Students-_CBIT-_Transport_08-07-2025-2025-26-1.png" target="_blank" rel="noreferrer" className="footer-grid-link">Senior Schedule</a>
+            <a href="https://cbit.ac.in" target="_blank" rel="noreferrer" className="footer-grid-link">CBIT</a>
+          </div>
+          <div className="footer-grid-column">
+            <span className="footer-grid-title">Legal</span>
+            <a onClick={() => { setActiveView("privacy"); window.scrollTo(0, 0); }} className="footer-grid-link">Privacy Policy</a>
+            <a onClick={() => { setActiveView("terms"); window.scrollTo(0, 0); }} className="footer-grid-link">Terms & Conditions</a>
+            <span className="text-muted text-xs mt-2" style={{ lineHeight: 1.4 }}>
+              Using this application implies automatic acceptance of our privacy policies and terms of service.
+            </span>
+          </div>
+        </div>
+
+        <div className="footer-logo-text">
+          Find My Bus
+        </div>
+
+        <div className="footer-bottom">
+          <p className="text-muted text-xs font-mono">
+            © {new Date().getFullYear()} All rights reserved by Raghavendra Anirudh
+          </p>
+          <div style={{ display: "flex", gap: "16px" }}>
+            <span className="font-mono text-xs text-muted" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <Activity size={12} className="text-success" /> LATENCY: ~40ms
+            </span>
+            <a href="https://github.com" target="_blank" rel="noreferrer" className="text-muted text-xs font-mono" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "4px" }}>
+              <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></svg> SOURCE CODE
+            </a>
+          </div>
         </div>
       </footer>
     </>

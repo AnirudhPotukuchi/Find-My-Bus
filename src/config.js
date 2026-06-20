@@ -1,4 +1,4 @@
-// CBIT BusRadar developer configuration file.
+// Find My Bus developer configuration file.
 // Automatically pulls credentials from the root .env file.
 
 export const CONFIG = {

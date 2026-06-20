@@ -123,11 +123,6 @@ export default function BusMap({ stops, busLocation, activeRoute }) {
     const defaultLat = 17.39197;
     const defaultLng = 78.31945;
 
-    const style = getComputedStyle(document.documentElement);
-    const accentVioletRgb = style.getPropertyValue('--accent-violet-rgb').trim() || "255, 85, 0";
-    const accentCyan = style.getPropertyValue('--accent-cyan').trim() || "#ffb700";
-    const accentViolet = style.getPropertyValue('--accent-violet').trim() || "#ff5500";
-
     // Initialize Map Instance
     if (!mapInstanceRef.current) {
       if (mapEngine === "leaflet" && window.L) {
