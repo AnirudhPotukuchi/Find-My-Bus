@@ -61,6 +61,7 @@ const STOP_COORDINATES = {
   "Tolichowki": { lat: 17.3984, lng: 78.4155 },
   "Narayanama": { lat: 17.3968, lng: 78.3989 },
   "Dargha": { lat: 17.3862, lng: 78.3842 },
+  "Darga": { lat: 17.3862, lng: 78.3842 },
   "DPS": { lat: 17.3789, lng: 78.3752 },
 
   // ECIL & AS Rao Nagar Area
@@ -442,7 +443,7 @@ const routesRaw = [
     number: "52",
     name: "SRINAGAR COLONY",
     category: "Senior",
-    stopNames: ["Gokul", "SR Nagar", "Maithrivanam", "Ameerpet", "Srinagar Colony", "Ratnadeep", "TV 9", "LVP", "Baswathara Film Nagar", "Wisper Valley", "Darga", "Signal", "DPS", "Khajaguda", "CBIT"]
+    stopNames: ["Gokul", "SR Nagar", "Maithrivanam", "Ameerpet", "Srinagar Colony", "Ratnadeep", "TV 9", "LVP", "Baswathara Film Nagar", "Wisper Valley", "Dargha", "Signal", "DPS", "Khajaguda", "CBIT"]
   },
   {
     number: "54",

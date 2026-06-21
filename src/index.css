@@ -40,6 +40,24 @@
   --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+:root[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-primary-rgb: 255, 255, 255;
+  --bg-secondary: #f8fafc;
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(15, 23, 42, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.6);
+  --glass-bg-hover: rgba(255, 255, 255, 0.95);
+
+  --text-main: #000000;
+  --text-muted: #475569;
+  --text-dark: #000000;
+
+  --shadow-neon-cyan: 0 4px 20px rgba(20, 184, 166, 0.08);
+  --shadow-neon-violet: 0 4px 20px rgba(99, 102, 241, 0.08);
+  --shadow-glass: 0 12px 40px rgba(15, 23, 42, 0.05);
+}
+
 /* Reset and Base Styles */
 * {
   box-sizing: border-box;
@@ -1156,7 +1174,7 @@ input:checked + .slider:before {
   /* Main Navigation Header */
   .navbar {
     padding: 14px 24px !important;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
     gap: 14px !important;
   }
   
@@ -1545,4 +1563,151 @@ input:checked + .slider:before {
   padding-top: 32px;
 }
 
+/* ==========================================================================
+   Light Theme Style Overrides
+   ========================================================================== */
 
+html[data-theme="light"] .hero-title {
+  background: linear-gradient(135deg, #000000 30%, #334155 70%, var(--accent-cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+html[data-theme="light"] .footer-logo-text {
+  background: linear-gradient(180deg, #000000 42%, rgba(0, 0, 0, 0.05) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+html[data-theme="light"] .select-custom {
+  background-color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+html[data-theme="light"] .glass-panel:hover {
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.08), var(--shadow-neon-violet);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+html[data-theme="light"] .bus-status-card {
+  background: rgba(15, 23, 42, 0.02);
+}
+
+html[data-theme="light"] .bus-status-card:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+html[data-theme="light"] .dashboard-sidebar {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+html[data-theme="light"] .telemetry-card {
+  background: rgba(15, 23, 42, 0.02);
+}
+
+html[data-theme="light"] .telemetry-card:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+html[data-theme="light"] .modal-overlay {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+html[data-theme="light"] .timeline-line {
+  background: rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme="light"] .timeline-item.passed .timeline-stop-name {
+  color: rgba(15, 23, 42, 0.35);
+}
+
+html[data-theme="light"] .legal-alert {
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+}
+
+html[data-theme="light"] .map-badge {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text-main);
+  box-shadow: 0 4px 15px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme="light"] .neon-marker .label-stop {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text-main);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme="light"] .neon-marker:hover .label-stop {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: var(--accent-cyan);
+}
+
+html[data-theme="light"] .checkbox-toggle-container {
+  background: rgba(15, 23, 42, 0.02);
+}
+
+html[data-theme="light"] .slider {
+  background-color: rgba(15, 23, 42, 0.08);
+}
+
+/* Theme Toggle Button */
+.btn-theme-toggle {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-main);
+  border: 1px solid var(--glass-border);
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.btn-theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.btn-theme-toggle:active {
+  transform: translateY(0);
+}
+
+.btn-theme-toggle svg {
+  transition: transform var(--transition-normal);
+}
+
+.btn-theme-toggle:hover svg {
+  transform: rotate(15deg);
+}
+
+html[data-theme="light"] .btn-theme-toggle {
+  background: rgba(15, 23, 42, 0.03);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme="light"] .btn-theme-toggle:hover {
+  background: rgba(15, 23, 42, 0.06);
+  border-color: rgba(15, 23, 42, 0.15);
+}
+
+html[data-theme="light"] .btn-secondary {
+  background: rgba(15, 23, 42, 0.04);
+  color: #000000;
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme="light"] .btn-secondary:hover {
+  background: rgba(15, 23, 42, 0.08);
+  border-color: rgba(15, 23, 42, 0.15);
+}
+html[data-theme="light"] body {
+  background: #ffffff;
+}
+
+html[data-theme="light"] .hero-section {
+  background: radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.02) 0%, transparent 60%);
+}

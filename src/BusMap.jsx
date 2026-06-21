@@ -75,7 +75,7 @@ function loadMappls(apiKey, callback) {
   }
 }
 
-export default function BusMap({ stops, busLocation, activeRoute }) {
+export default function BusMap({ stops, busLocation, activeRoute, theme }) {
   const containerRef = useRef(null);
   const [mapEngine, setMapEngine] = useState("loading"); // 'loading', 'mappls', 'leaflet', 'error'
   const mapInstanceRef = useRef(null);
@@ -102,7 +102,7 @@ export default function BusMap({ stops, busLocation, activeRoute }) {
     }
   }, [mapplsKey]);
 
-  // Clean up previous map instances if the engine shifts
+  // Clean up previous map instances if the engine shifts or theme changes
   useEffect(() => {
     return () => {
       if (mapInstanceRef.current) {
@@ -114,7 +114,7 @@ export default function BusMap({ stops, busLocation, activeRoute }) {
         mapInstanceRef.current = null;
       }
     };
-  }, [mapEngine]);
+  }, [mapEngine, theme]);
 
   // Handle map creation & updates
   useEffect(() => {
@@ -132,8 +132,12 @@ export default function BusMap({ stops, busLocation, activeRoute }) {
           attributionControl: false
         }).setView([defaultLat, defaultLng], 12);
 
-        // Dark matter tile layer matching transit control center theme
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        // Dynamic tile layer matching the light or dark theme
+        const tileUrl = theme === "light"
+          ? "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+
+        L.tileLayer(tileUrl, {
           maxZoom: 20
         }).addTo(map);
 
@@ -327,7 +331,7 @@ export default function BusMap({ stops, busLocation, activeRoute }) {
         window.dispatchEvent(new Event('resize'));
       }, 150);
     }
-  }, [mapEngine, stops, busLocation, activeRoute]);
+  }, [mapEngine, stops, busLocation, activeRoute, theme]);
 
   // Handle window resizing dynamically to invalidate map bounds & container sizes
   useEffect(() => {
@@ -371,7 +375,9 @@ export default function BusMap({ stops, busLocation, activeRoute }) {
       <div id="mappls-map-container" ref={containerRef} style={{ width: "100%", height: "100%" }} />
       <div className="map-badge font-mono">
         <span className={`status-dot ${mapEngine === "mappls" ? "bg-cyan" : "bg-violet"}`}></span>
-        {mapEngine === "mappls" ? "MAPMYINDIA ACTIVE" : "LEAFLET DARK ACTIVE"}
+        {mapEngine === "mappls" 
+          ? "MAPMYINDIA ACTIVE" 
+          : `LEAFLET ${theme === "light" ? "LIGHT" : "DARK"} ACTIVE`}
       </div>
     </div>
   );

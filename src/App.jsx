@@ -11,7 +11,9 @@ import {
   Info,
   Navigation,
   Gauge,
-  Activity
+  Activity,
+  Sun,
+  Moon
 } from "lucide-react";
 import { ALL_ROUTES, ROUTES_BY_NUMBER, getDistanceKm, CBIT_COORDS } from "./routesData";
 import { syncService } from "./syncService";
@@ -28,7 +30,93 @@ const sessionToken = (() => {
   return token;
 })();
 
+// Helper functions for dynamic theme calculation in dark mode
+function hslToRgb(h, s, l) {
+  s /= 100;
+  l /= 100;
+  const k = n => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+  return [
+    Math.round(255 * f(0)),
+    Math.round(255 * f(8)),
+    Math.round(255 * f(4))
+  ];
+}
+
+function rgbToHex(r, g, b) {
+  return "#" + [r, g, b].map(x => {
+    const hex = x.toString(16);
+    return hex.length === 1 ? "0" + hex : hex;
+  }).join("");
+}
+
+function applyDarkThemeInlineStyles() {
+  const daySeed = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+  const maxShiftDegrees = 8;
+  const hueOffset = Math.sin(daySeed) * maxShiftDegrees;
+
+  const tealRgb = hslToRgb(176 + hueOffset, 95, 46);
+  const indigoRgb = hslToRgb(242 + hueOffset, 90, 62);
+  const roseRgb = hslToRgb(342 + hueOffset, 88, 55);
+
+  const bgPrimaryRgb = hslToRgb(224 + hueOffset, 55, 4);
+  const bgSecondaryRgb = hslToRgb(224 + hueOffset, 45, 8);
+  const glassHoverRgb = hslToRgb(224 + hueOffset, 42, 13);
+
+  const root = document.documentElement;
+  
+  root.style.setProperty('--bg-primary', rgbToHex(...bgPrimaryRgb));
+  root.style.setProperty('--bg-primary-rgb', bgPrimaryRgb.join(', '));
+  root.style.setProperty('--bg-secondary', rgbToHex(...bgSecondaryRgb));
+  
+  root.style.setProperty('--glass-bg', `rgba(${bgSecondaryRgb.join(', ')}, 0.7)`);
+  root.style.setProperty('--glass-bg-hover', `rgba(${glassHoverRgb.join(', ')}, 0.8)`);
+
+  root.style.setProperty('--accent-cyan', rgbToHex(...tealRgb));
+  root.style.setProperty('--accent-cyan-rgb', tealRgb.join(', '));
+  
+  root.style.setProperty('--accent-violet', rgbToHex(...indigoRgb));
+  root.style.setProperty('--accent-violet-rgb', indigoRgb.join(', '));
+  
+  root.style.setProperty('--accent-pink', rgbToHex(...roseRgb));
+
+  root.style.setProperty('--shadow-neon-cyan', `0 4px 20px rgba(${tealRgb.join(', ')}, 0.15)`);
+  root.style.setProperty('--shadow-neon-violet', `0 4px 20px rgba(${indigoRgb.join(', ')}, 0.15)`);
+}
+
+function clearDarkThemeInlineStyles() {
+  const root = document.documentElement;
+  root.style.removeProperty('--bg-primary');
+  root.style.removeProperty('--bg-primary-rgb');
+  root.style.removeProperty('--bg-secondary');
+  root.style.removeProperty('--glass-bg');
+  root.style.removeProperty('--glass-bg-hover');
+  root.style.removeProperty('--accent-cyan');
+  root.style.removeProperty('--accent-cyan-rgb');
+  root.style.removeProperty('--accent-violet');
+  root.style.removeProperty('--accent-violet-rgb');
+  root.style.removeProperty('--accent-pink');
+  root.style.removeProperty('--shadow-neon-cyan');
+  root.style.removeProperty('--shadow-neon-violet');
+}
+
 export default function App() {
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem("theme");
+    return saved || "dark";
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+    if (theme === "light") {
+      clearDarkThemeInlineStyles();
+    } else {
+      applyDarkThemeInlineStyles();
+    }
+  }, [theme]);
+
   // App navigation and search state
   const [selectedBusNumber, setSelectedBusNumber] = useState("");
   const [activeSearchBus, setActiveSearchBus] = useState(null); // route details object
@@ -327,10 +415,18 @@ export default function App() {
       {/* Primary Navigation Bar */}
       <header className="navbar">
         <div className="nav-brand" onClick={handleBackToSearch}>
-          <h3 style={{ fontSize: "1.25rem", color: "white" }}>Find My Bus</h3>
+          <h3 style={{ fontSize: "1.25rem", color: "var(--text-main)" }}>Find My Bus</h3>
         </div>
         
         <div className="nav-actions">
+          <button 
+            className="btn-theme-toggle" 
+            onClick={() => setTheme(prev => prev === "dark" ? "light" : "dark")}
+            aria-label="Toggle theme"
+            title={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+          >
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
           <button className="btn-primary" onClick={() => setIsShareModalOpen(true)}>
             <Share2 size={16} /> <span className="btn-text">Share Live Location</span>
           </button>
@@ -626,7 +722,7 @@ export default function App() {
 
           {/* Right Panel: Interactive Maps widget */}
           <section className="dashboard-map-panel">
-            <BusMap stops={activeSearchBus.stops} busLocation={liveBusCoordinates} activeRoute={activeSearchBus} />
+            <BusMap stops={activeSearchBus.stops} busLocation={liveBusCoordinates} activeRoute={activeSearchBus} theme={theme} />
           </section>
         </main>
       )}
@@ -715,7 +811,7 @@ export default function App() {
             <span className="font-mono text-xs text-muted" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
               <Activity size={12} className="text-success" /> LATENCY: ~40ms
             </span>
-            <a href="https://github.com" target="_blank" rel="noreferrer" className="text-muted text-xs font-mono" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "4px" }}>
+            <a href="https://github.com/AnirudhPotukuchi/Find-My-Bus" target="_blank" rel="noreferrer" className="text-muted text-xs font-mono" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "4px" }}>
               <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ display: "inline-block", verticalAlign: "middle" }}><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></svg> SOURCE CODE
             </a>
           </div>
