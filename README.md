@@ -1,4 +1,9 @@
-# Find My Bus 🚌
+# Find My Bus
+
+<p align="center">
+  <img src="public/logo.svg" width="120" alt="Find My Bus Logo" style="border-radius: 22px;" />
+</p>
+
 > A real-time Student Transport Tracking System designed for Chaitanya Bharathi Institute of Technology (CBIT) routes.
 
 **Find My Bus** is an interactive, digital transit deck that allows students and drivers to share and monitor bus commutes in real-time. Designed with a clean, document-inspired editorial aesthetic (Notion visual style), it tracks route lines, locates schedule milestones, and renders live GPS signals on highly responsive map viewports.
