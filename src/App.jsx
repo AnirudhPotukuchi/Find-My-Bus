@@ -30,91 +30,15 @@ const sessionToken = (() => {
   return token;
 })();
 
-// Helper functions for dynamic theme calculation in dark mode
-function hslToRgb(h, s, l) {
-  s /= 100;
-  l /= 100;
-  const k = n => (n + h / 30) % 12;
-  const a = s * Math.min(l, 1 - l);
-  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
-  return [
-    Math.round(255 * f(0)),
-    Math.round(255 * f(8)),
-    Math.round(255 * f(4))
-  ];
-}
-
-function rgbToHex(r, g, b) {
-  return "#" + [r, g, b].map(x => {
-    const hex = x.toString(16);
-    return hex.length === 1 ? "0" + hex : hex;
-  }).join("");
-}
-
-function applyDarkThemeInlineStyles() {
-  const daySeed = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
-  const maxShiftDegrees = 8;
-  const hueOffset = Math.sin(daySeed) * maxShiftDegrees;
-
-  const tealRgb = hslToRgb(176 + hueOffset, 95, 46);
-  const indigoRgb = hslToRgb(242 + hueOffset, 90, 62);
-  const roseRgb = hslToRgb(342 + hueOffset, 88, 55);
-
-  const bgPrimaryRgb = hslToRgb(224 + hueOffset, 55, 4);
-  const bgSecondaryRgb = hslToRgb(224 + hueOffset, 45, 8);
-  const glassHoverRgb = hslToRgb(224 + hueOffset, 42, 13);
-
-  const root = document.documentElement;
-  
-  root.style.setProperty('--bg-primary', rgbToHex(...bgPrimaryRgb));
-  root.style.setProperty('--bg-primary-rgb', bgPrimaryRgb.join(', '));
-  root.style.setProperty('--bg-secondary', rgbToHex(...bgSecondaryRgb));
-  
-  root.style.setProperty('--glass-bg', `rgba(${bgSecondaryRgb.join(', ')}, 0.7)`);
-  root.style.setProperty('--glass-bg-hover', `rgba(${glassHoverRgb.join(', ')}, 0.8)`);
-
-  root.style.setProperty('--accent-cyan', rgbToHex(...tealRgb));
-  root.style.setProperty('--accent-cyan-rgb', tealRgb.join(', '));
-  
-  root.style.setProperty('--accent-violet', rgbToHex(...indigoRgb));
-  root.style.setProperty('--accent-violet-rgb', indigoRgb.join(', '));
-  
-  root.style.setProperty('--accent-pink', rgbToHex(...roseRgb));
-
-  root.style.setProperty('--shadow-neon-cyan', `0 4px 20px rgba(${tealRgb.join(', ')}, 0.15)`);
-  root.style.setProperty('--shadow-neon-violet', `0 4px 20px rgba(${indigoRgb.join(', ')}, 0.15)`);
-}
-
-function clearDarkThemeInlineStyles() {
-  const root = document.documentElement;
-  root.style.removeProperty('--bg-primary');
-  root.style.removeProperty('--bg-primary-rgb');
-  root.style.removeProperty('--bg-secondary');
-  root.style.removeProperty('--glass-bg');
-  root.style.removeProperty('--glass-bg-hover');
-  root.style.removeProperty('--accent-cyan');
-  root.style.removeProperty('--accent-cyan-rgb');
-  root.style.removeProperty('--accent-violet');
-  root.style.removeProperty('--accent-violet-rgb');
-  root.style.removeProperty('--accent-pink');
-  root.style.removeProperty('--shadow-neon-cyan');
-  root.style.removeProperty('--shadow-neon-violet');
-}
-
 export default function App() {
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem("theme");
-    return saved || "dark";
+    return saved || "light";
   });
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
-    if (theme === "light") {
-      clearDarkThemeInlineStyles();
-    } else {
-      applyDarkThemeInlineStyles();
-    }
   }, [theme]);
 
   // App navigation and search state
@@ -234,7 +158,9 @@ export default function App() {
     } else {
       showNotification(`Live sharing stopped for Bus ${busNum}.`, "info");
     }
-  }  // Start Location Sharing (real GPS)
+  };
+
+  // Start Location Sharing (real GPS)
   const handleStartSharing = async (busNum) => {
     const route = ROUTES_BY_NUMBER[busNum];
     if (!route) return;
@@ -392,18 +318,18 @@ export default function App() {
           <div className="share-banner-details">
             <div className="red-dot-blinking"></div>
             <div>
-              <p className="font-mono text-xs text-muted" style={{ textTransform: "uppercase" }}>Broadcasting Location</p>
-              <h4 className="text-gradient-cyan" style={{ fontSize: "1rem" }}>Bus {sharingState.busNumber} ({ROUTES_BY_NUMBER[sharingState.busNumber]?.name})</h4>
+              <p className="font-mono text-xs text-muted" style={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>Broadcasting Location</p>
+              <h4 style={{ fontSize: "0.95rem", fontWeight: "600", marginTop: "2px" }}>Bus {sharingState.busNumber} ({ROUTES_BY_NUMBER[sharingState.busNumber]?.name})</h4>
             </div>
           </div>
           <div className="share-banner-details" style={{ gap: "24px" }}>
             <div className="font-mono text-xs text-center">
               <span className="text-muted block">SPEED</span>
-              <p className="text-gradient-cyan font-bold">{sharingState.speed} km/h</p>
+              <p className="font-bold" style={{ fontSize: "1rem" }}>{sharingState.speed} km/h</p>
             </div>
             <div className="font-mono text-xs text-center">
               <span className="text-muted block">CBIT DIST</span>
-              <p className="text-gradient-cyan font-bold">{sharingState.distanceToCbit.toFixed(2)} km</p>
+              <p className="font-bold" style={{ fontSize: "1rem" }}>{sharingState.distanceToCbit.toFixed(2)} km</p>
             </div>
             <button className="btn-danger" onClick={() => triggerAutoTermination(sharingState.busNumber, "manual")}>
               <Square size={14} /> <span className="btn-text">Stop Sharing</span>
@@ -415,7 +341,8 @@ export default function App() {
       {/* Primary Navigation Bar */}
       <header className="navbar">
         <div className="nav-brand" onClick={handleBackToSearch}>
-          <h3 style={{ fontSize: "1.25rem", color: "var(--text-main)" }}>Find My Bus</h3>
+          <img src="/logo.svg" alt="Find My Bus Logo" style={{ width: '30px', height: '30px', borderRadius: '6px' }} />
+          <h3 style={{ fontSize: "1.15rem", fontWeight: "600", color: "var(--text-main)" }}>Find My Bus</h3>
         </div>
         
         <div className="nav-actions">
@@ -435,7 +362,7 @@ export default function App() {
 
       {/* Main Container */}
       {activeView === "privacy" ? (
-        <main className="legal-container glass-panel">
+        <main className="legal-container">
           <div className="legal-header">
             <h1 className="legal-title">Privacy Policy</h1>
             <p className="legal-meta">Last Updated: June 2026</p>
@@ -494,7 +421,7 @@ export default function App() {
           </div>
         </main>
       ) : activeView === "terms" ? (
-        <main className="legal-container glass-panel">
+        <main className="legal-container">
           <div className="legal-header">
             <h1 className="legal-title">Terms & Conditions</h1>
             <p className="legal-meta">Last Updated: June 2026</p>
@@ -531,7 +458,7 @@ export default function App() {
           <section className="legal-section">
             <h3>3. "As-Is" Service & Disclaimers</h3>
             <p>
-              Find My Bus is offered as a student assistance utility. It is not an absolute official guarantee of bus arrivals:
+              Find My Bus is offered as a student assistance utility. It is not an official guarantee of bus arrivals:
             </p>
             <ul>
               <li><strong>Coordinate Latency:</strong> Coordinates and estimated milestones are subject to network delay, mobile cellular coverage dropouts, and GPS hardware sensor variances.</li>
@@ -556,24 +483,62 @@ export default function App() {
         // LANDING STATE
         <main className="app-container">
           <div className="hero-section">
+            {/* Scattered SVG mesh wires & sticky note dots in brand colors */}
+            <div className="hero-decorations" style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, pointerEvents: "none", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: "15%", left: "12%", width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "var(--colors-brand-yellow)" }}></div>
+              <div style={{ position: "absolute", top: "28%", right: "14%", width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "var(--colors-brand-pink)" }}></div>
+              <div style={{ position: "absolute", bottom: "35%", left: "16%", width: "12px", height: "12px", borderRadius: "50%", backgroundColor: "var(--colors-brand-teal)" }}></div>
+              <div style={{ position: "absolute", bottom: "45%", right: "20%", width: "10px", height: "10px", borderRadius: "50%", backgroundColor: "var(--colors-brand-orange)" }}></div>
+              
+              <svg style={{ position: "absolute", top: "8%", left: "6%", opacity: 0.15 }} width="120" height="120" viewBox="0 0 100 100" fill="none" stroke="currentColor">
+                <path d="M10,10 C30,40 40,20 70,50 C80,60 90,80 90,90" strokeWidth="0.75" />
+                <circle cx="70" cy="50" r="2" fill="currentColor" />
+              </svg>
+              <svg style={{ position: "absolute", bottom: "12%", right: "6%", opacity: 0.15 }} width="130" height="130" viewBox="0 0 100 100" fill="none" stroke="currentColor">
+                <path d="M10,90 C40,70 20,40 50,20 C60,10 80,10 90,10" strokeWidth="0.75" />
+                <circle cx="50" cy="20" r="2" fill="currentColor" />
+              </svg>
+            </div>
+
             <h1 className="hero-title">Track Campus Commutes in Real-Time</h1>
             <p className="hero-subtitle">
               Interactive digital transit deck for Chaitanya Bharathi Institute of Technology. Search route lines, locate bus schedules, and view GPS signals live.
             </p>
+            <div className="hero-buttons">
+              <button className="btn-on-dark" onClick={() => setIsShareModalOpen(true)}>
+                <Share2 size={16} /> Share Live Location
+              </button>
+              <button className="btn-secondary-on-dark" onClick={() => {
+                const el = document.getElementById("bus-select");
+                if (el) {
+                  el.focus();
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }}>
+                <Search size={16} /> Search Routes
+              </button>
+            </div>
+
+            {/* Wavy bottom divider transition between navy band and white page */}
+            <div className="hero-divider" style={{ position: "absolute", bottom: -1, left: 0, width: "100%", overflow: "hidden", lineHeight: 0, zIndex: 1 }}>
+              <svg viewBox="0 0 1200 120" preserveAspectRatio="none" style={{ position: "relative", display: "block", width: "100%", height: "55px" }}>
+                <path d="M0,60 C300,120 900,0 1200,60 L1200,120 L0,120 Z" fill="var(--bg-primary)"></path>
+              </svg>
+            </div>
           </div>
 
           <div className="search-center-container">
             {/* Bus Search Panel */}
-            <section className="glass-panel glow-violet">
+            <div className="workspace-mockup-card">
               <div className="card-title-container">
-                <Search className="text-gradient-violet" style={{ color: "var(--accent-violet)" }} size={24} />
+                <Search style={{ color: "var(--colors-primary)" }} size={20} />
                 <h3>Search Bus Schedule</h3>
               </div>
               <p className="text-muted text-sm mb-4">
                 Select your designated route number to locate the transit bus, preview milestones, and check ETA.
               </p>
 
-              <div className="form-group">
+              <div className="form-group" style={{ textAlign: "left" }}>
                 <label className="form-label" htmlFor="bus-select">Bus Route</label>
                 <select id="bus-select" className="select-custom" value={selectedBusNumber} onChange={(e) => setSelectedBusNumber(e.target.value)}>
                   <option value="">-- Choose Bus Number --</option>
@@ -594,47 +559,59 @@ export default function App() {
                 </select>
               </div>
 
-              <button className="btn-primary w-full" onClick={handleSearch}>
+              <button className="btn-primary w-full" onClick={handleSearch} style={{ height: '44px' }}>
                 <Search size={18} /> Locate Bus
               </button>
-            </section>
+            </div>
           </div>
 
           {/* Active Buses Dashboard Board */}
-          <section className="glass-panel">
-            <div className="card-title-container">
-              <div className="green-dot-blinking" style={{ marginRight: "4px" }}></div>
-              <h3>Live Commutes On Road</h3>
+          <div className="dashboard-grid-section">
+            <div className="card-title-container" style={{ justifyContent: "flex-start", borderBottom: "none", marginBottom: "8px" }}>
+              <div className="green-dot-blinking" style={{ marginRight: "6px" }}></div>
+              <h3 style={{ fontSize: "1.25rem", fontWeight: "600" }}>Live Commutes On Road</h3>
             </div>
             
             {activeBusesList.length === 0 ? (
-              <div className="text-center" style={{ padding: "40px 0" }}>
-                <Bus size={32} className="text-muted" style={{ opacity: 0.3, marginBottom: "12px" }} />
-                <p className="text-muted text-sm">No buses are broadcasting GPS signals right now.</p>
-                <p className="text-muted text-xs mt-4">
-                  Click <strong className="text-gradient-cyan" style={{ cursor: "pointer" }} onClick={() => setIsShareModalOpen(true)}>Share Live Location</strong> at the top to simulate or stream a live bus commute!
+              <div className="glass-panel text-center" style={{ padding: "48px 0" }}>
+                <Bus size={36} className="text-muted" style={{ opacity: 0.3, marginBottom: "12px" }} />
+                <p className="text-muted text-sm" style={{ fontWeight: "500" }}>No buses are broadcasting GPS signals right now.</p>
+                <p className="text-muted text-xs mt-2">
+                  Click <strong style={{ color: "var(--colors-primary)", cursor: "pointer", textDecoration: "underline" }} onClick={() => setIsShareModalOpen(true)}>Share Live Location</strong> at the top to stream a live commute!
                 </p>
               </div>
             ) : (
               <div className="live-board-grid">
-                {activeBusesList.map(bus => (
-                  <div key={bus.number} className="bus-status-card" style={{ cursor: "pointer" }} onClick={() => {
-                    setSelectedBusNumber(bus.number);
-                    setActiveSearchBus(ROUTES_BY_NUMBER[bus.number]);
-                  }}>
-                    <div className="bus-badge-glow">{bus.number}</div>
-                    <div className="bus-status-details">
-                      <p className="bus-status-route">{bus.name}</p>
-                      <p className="bus-status-meta">Speed: {Math.round(bus.speed * 3.6)} km/h • Tracking active</p>
+                {activeBusesList.map((bus, idx) => {
+                  const cardTints = [
+                    "card-feature-sky",
+                    "card-feature-mint",
+                    "card-feature-lavender",
+                    "card-feature-peach",
+                    "card-feature-rose",
+                    "card-feature-yellow",
+                    "card-feature-cream"
+                  ];
+                  const cardTintClass = cardTints[idx % cardTints.length];
+                  return (
+                    <div key={bus.number} className={`bus-status-card ${cardTintClass}`} style={{ cursor: "pointer" }} onClick={() => {
+                      setSelectedBusNumber(bus.number);
+                      setActiveSearchBus(ROUTES_BY_NUMBER[bus.number]);
+                    }}>
+                      <div className="bus-badge-glow" style={{ backgroundColor: 'var(--colors-ink-deep)', color: '#ffffff' }}>{bus.number}</div>
+                      <div className="bus-status-details">
+                        <p className="bus-status-route">{bus.name}</p>
+                        <p className="bus-status-meta">Speed: {Math.round(bus.speed * 3.6)} km/h • Active</p>
+                      </div>
+                      <div className="status-indicator font-mono" style={{ color: "var(--colors-semantic-success)" }}>
+                        <div className="green-dot-blinking"></div> LIVE
+                      </div>
                     </div>
-                    <div className="status-indicator text-success">
-                      <div className="green-dot-blinking"></div> LIVE
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
-          </section>
+          </div>
         </main>
       ) : (
         // DASHBOARD SPLIT-SCREEN STATE
@@ -642,16 +619,16 @@ export default function App() {
           {/* Left Panel: Route Milestones timeline & telemetry */}
           <section className="dashboard-sidebar">
             <div className="sidebar-header">
-              <button className="btn-secondary" style={{ marginBottom: "16px" }} onClick={handleBackToSearch}>
+              <button className="btn-secondary w-full" style={{ marginBottom: "16px", height: "40px" }} onClick={handleBackToSearch}>
                 <ArrowLeft size={16} /> Back to Search
               </button>
               
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", textAlign: "left" }}>
                 <div>
                   <h4 className="text-muted font-mono text-xs" style={{ letterSpacing: "0.05em" }}>BUS COMMUTE ACTIVE</h4>
-                  <h2 style={{ fontSize: "1.5rem", marginTop: "4px" }}>Route {activeSearchBus.number}: {activeSearchBus.name}</h2>
+                  <h2 style={{ fontSize: "1.25rem", marginTop: "4px", fontWeight: "600" }}>Route {activeSearchBus.number}: {activeSearchBus.name}</h2>
                 </div>
-                <div className={`status-indicator ${liveBusCoordinates ? "text-success" : "text-muted"}`} style={{ marginTop: "4px" }}>
+                <div className={`status-indicator ${liveBusCoordinates ? "text-success" : "text-muted"}`} style={{ marginTop: "4px", whiteSpace: "nowrap" }}>
                   <div className={liveBusCoordinates ? "green-dot-blinking" : "status-dot bg-violet"}></div>
                   {liveBusCoordinates ? "LIVE FEED" : "STANDBY"}
                 </div>
@@ -668,21 +645,21 @@ export default function App() {
                     <div className="telemetry-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}><Navigation size={12} /> Distance</div>
                     <p className="telemetry-value">
                       {getDistanceKm(liveBusCoordinates.latitude, liveBusCoordinates.longitude, CBIT_COORDS.lat, CBIT_COORDS.lng).toFixed(2)} 
-                      <span className="text-xs text-muted"> km to CBIT</span>
+                      <span className="text-xs text-muted"> km</span>
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="glass-panel" style={{ padding: "16px", marginTop: "16px", display: "flex", alignItems: "center", gap: "12px", background: "rgba(255, 255, 255, 0.01)" }}>
-                  <Info className="text-muted" size={20} />
-                  <p className="text-muted text-xs">Waiting for a driver/student to share live location for Bus {activeSearchBus.number}.</p>
+                <div style={{ padding: "12px 16px", marginTop: "16px", display: "flex", alignItems: "center", gap: "10px", backgroundColor: "var(--colors-card-tint-peach)", border: "1px solid rgba(221, 91, 0, 0.2)", borderRadius: "8px", textAlign: "left" }}>
+                  <Info className="text-danger" size={18} style={{ flexShrink: 0 }} />
+                  <p className="text-xs" style={{ color: "var(--colors-brand-orange-deep)", lineHeight: "1.4" }}>Waiting for a driver/student to share live location for Bus {activeSearchBus.number}.</p>
                 </div>
               )}
             </div>
 
             {/* Timeline scroll area */}
             <div className="sidebar-scrollable">
-              <h4 className="font-mono text-xs text-muted mb-4" style={{ letterSpacing: "0.05em" }}>ROUTE MILESTONES</h4>
+              <h4 className="font-mono text-xs text-muted mb-4" style={{ letterSpacing: "0.05em", textAlign: "left" }}>ROUTE MILESTONES</h4>
               <div className="timeline-container">
                 <div className="timeline-line"></div>
                 <div className="timeline-line-filled" style={{ height: `${fillPercent}%` }}></div>
@@ -703,7 +680,7 @@ export default function App() {
                       <div className="timeline-content">
                         <p className="timeline-stop-name">{stop.name}</p>
                         {status === "active" && (
-                          <span className="font-mono text-xs text-gradient-cyan" style={{ display: "block", marginTop: "4px" }}>
+                          <span className="font-mono text-xs font-bold" style={{ display: "block", marginTop: "4px", color: "var(--accent-purple)" }}>
                             CURRENT STATION
                           </span>
                         )}
@@ -730,9 +707,9 @@ export default function App() {
       {/* SHARE LOCATION DIALOG OVERLAY */}
       {isShareModalOpen && (
         <div className="modal-overlay" onClick={() => setIsShareModalOpen(false)}>
-          <div className="modal-content glass-panel glow-cyan" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="text-gradient-cyan">Share Live Location</h3>
+              <h3 style={{ color: "var(--text-main)" }}>Share Live Location</h3>
               <button className="modal-close" onClick={() => setIsShareModalOpen(false)}>×</button>
             </div>
             
@@ -772,7 +749,7 @@ export default function App() {
       )}
 
       {/* Footer */}
-      <footer className="glass-panel footer-container">
+      <footer className="footer-container">
         <div className="footer-top-grid">
           <div className="footer-tagline">
             Experience seamless transit control.
