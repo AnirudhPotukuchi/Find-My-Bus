@@ -782,7 +782,7 @@ export default function App() {
 
         <div className="footer-bottom">
           <p className="text-muted text-xs font-mono">
-            © {new Date().getFullYear()} All rights reserved by Raghavendra Anirudh
+            © {new Date().getFullYear()} All rights reserved by Sai Raghavendra Anirudh Potukuchi
           </p>
           <div style={{ display: "flex", gap: "16px" }}>
             <span className="font-mono text-xs text-muted" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
