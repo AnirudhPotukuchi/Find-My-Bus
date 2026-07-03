@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getDatabase, ref, onValue, runTransaction, off } from "firebase/database";
-import { CONFIG } from "./config";
+import { CONFIG } from "../config/config";
 
 // Fallback Database stored in localStorage & synced across tabs using BroadcastChannel
 const MOCK_DB_KEY = "cbit_bus_radar_mock_db";

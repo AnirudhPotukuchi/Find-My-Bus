@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CONFIG } from "./config";
+import { CONFIG } from "../../config/config";
 
 // Helper to check and load Leaflet from CDN
 function loadLeaflet(callback) {
