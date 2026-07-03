@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import TelemetryDisplay from "../components/bus/TelemetryDisplay";
 import BusRouteTimeline from "../components/bus/BusRouteTimeline";
@@ -9,6 +10,18 @@ export default function TrackingDashboard({
   theme,
   onBack
 }) {
+  useEffect(() => {
+    if (activeSearchBus?.number && activeSearchBus?.name) {
+      document.title = `${activeSearchBus.number}: ${activeSearchBus.name} - Find My Bus`;
+    } else {
+      document.title = "Find My Bus";
+    }
+
+    return () => {
+      document.title = "Find My Bus";
+    };
+  }, [activeSearchBus]);
+
   return (
     <main className="dashboard-container">
       {/* Left Panel: Route Milestones timeline & telemetry */}
