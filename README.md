@@ -97,4 +97,4 @@ find-my-bus/
 ---
 
 ## 📄 License
-Created by **Raghavendra Anirudh**. All rights reserved.
+Created by **Sai Raghavendra Anirudh Potukuchi**. All rights reserved.
